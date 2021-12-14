@@ -225,8 +225,15 @@ def print_report():
         results = json.load(f)
         
     doc_lines.append("# Results")
-    doc_lines.append("## Summary")
 
+    doc_lines.append("## Summary")
+    doc_lines.append("Summarize the results for each method of representing the "
+                     "shingles. `P_f` is the fraction of trials in which the top "
+                     "result found a match (the closer to 1 the better), `[n]` is "
+                     "the fraction of possible matches at the top of the list "
+                     "(the larger the better), and last but not least, `[[d]]` is an "
+                     "average over the average distances of matching results from "
+                     "the top of the list.")
     doc_lines.append(tabulate.tabulate(
         [
             (r['method'], r['sample_size']) + tuple(r['summary'].values())

@@ -2,6 +2,8 @@
 
 ## Summary
 
+Summarize the results for each method of representing the shingles. `P_f` is the fraction of trials in which the top result found a match (the closer to 1 the better), `[n]` is the fraction of possible matches at the top of the list (the larger the better), and last but not least, `[[d]]` is an average over the average distances of matching results from the top of the list.
+
 | Method Description                                                                                   |   Sample Size |   `P_f` |   `[n]` |   `[[d]]` |
 |------------------------------------------------------------------------------------------------------|---------------|---------|---------|-----------|
 | Simply flatten the arrays, at full resolution.                                                       |            10 |    0.5  |   0.5   |     4.6   |
