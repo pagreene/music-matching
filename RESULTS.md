@@ -12,6 +12,7 @@
 | Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by median.             |           100 |    0.26 |   0.255 |     4.985 |
 | Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by mean.               |           100 |    0.27 |   0.26  |     5.165 |
 | Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by median (CORRECTED). |           100 |    0.76 |   0.725 |     1.09  |
+| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by mean (CORRECTED).   |           100 |    0.82 |   0.8   |     0.985 |
 
 ## Method Details
 
@@ -124,6 +125,26 @@ def f(sd):
     
     # Downsample features.
     F_ds = np.stack([np.median(F_bit, axis=1) for F_bit in make_shingles(F, 1.5, 180, 1)]).T
+    
+    # Re-partition it into documents
+    F_D  = make_shingles(F_ds, 20, 180)
+    
+    sh = F_D.shape
+    return F_D.reshape(sh[0], sh[1]*sh[2])
+
+```
+
+### Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by mean (CORRECTED).
+
+```python
+def f(sd):
+    """Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by mean (CORRECTED)."""
+    
+    # Add the volume to the top of the chroma array.
+    F = np.block([[sd['volume']], [sd['C']]])
+    
+    # Downsample features.
+    F_ds = np.stack([np.mean(F_bit, axis=1) for F_bit in make_shingles(F, 1.5, 180, 1)]).T
     
     # Re-partition it into documents
     F_D  = make_shingles(F_ds, 20, 180)
@@ -246,3 +267,17 @@ The number of misses caused by each entry. In other words, how often did each en
 | poulenc    | flutesonata-1 | unkown1     |       2 |
 | mahler     | symphony6-1   | zander      |       1 |
 | beethoven  | symphony7-1   | karajan     |       1 |
+
+### Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by mean (CORRECTED). (100)
+
+fraction found: **0.82**	average first match: **0.8**	average average distance: **0.985**
+
+The number of misses caused by each entry. In other words, how often did each entry score best but was an incorrect match.
+
+| composer   | piece         | performer   |   count |
+|------------|---------------|-------------|---------|
+| mahler     | symphony3-3   | zander      |      13 |
+| stravinsky | spring-finale | stravinsky  |       2 |
+| stravinsky | spring-finale | ozawa       |       1 |
+| beethoven  | symphony7-1   | gardner     |       1 |
+| prokofiev  | flute         | adorjan     |       1 |
