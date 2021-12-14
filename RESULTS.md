@@ -2,15 +2,16 @@
 
 ## Summary
 
-| Method Description                                                                       |   Sample Size |   `P_f` |   `[n]` |   `[[d]]` |
-|------------------------------------------------------------------------------------------|---------------|---------|---------|-----------|
-| Simply flatten the arrays, at full resolution.                                           |            10 |    0.5  |   0.5   |     4.6   |
-| Add volume as a channel, then simply flatten the arrays, at full resolution.             |            10 |    0.7  |   0.7   |     1.65  |
-| Downsample and then flatten the standard arrays (no volume).                             |            10 |    0.7  |   0.7   |     1.7   |
-| Downsample and then flatten the standard arrays (no volume).                             |           100 |    0.57 |   0.52  |     3.535 |
-| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz.           |           100 |    0.66 |   0.625 |     2.51  |
-| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by median. |           100 |    0.26 |   0.255 |     4.985 |
-| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by mean.   |           100 |    0.27 |   0.26  |     5.165 |
+| Method Description                                                                                   |   Sample Size |   `P_f` |   `[n]` |   `[[d]]` |
+|------------------------------------------------------------------------------------------------------|---------------|---------|---------|-----------|
+| Simply flatten the arrays, at full resolution.                                                       |            10 |    0.5  |   0.5   |     4.6   |
+| Add volume as a channel, then simply flatten the arrays, at full resolution.                         |            10 |    0.7  |   0.7   |     1.65  |
+| Downsample and then flatten the standard arrays (no volume).                                         |            10 |    0.7  |   0.7   |     1.7   |
+| Downsample and then flatten the standard arrays (no volume).                                         |           100 |    0.57 |   0.52  |     3.535 |
+| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz.                       |           100 |    0.66 |   0.625 |     2.51  |
+| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by median.             |           100 |    0.26 |   0.255 |     4.985 |
+| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by mean.               |           100 |    0.27 |   0.26  |     5.165 |
+| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by median (CORRECTED). |           100 |    0.76 |   0.725 |     1.09  |
 
 ## Method Details
 
@@ -107,6 +108,26 @@ def f(sd):
     
     # Re-partition it into documents
     F_D  = make_shingles(F_ds, 20, 180)
+    sh = F_D.shape
+    return F_D.reshape(sh[0], sh[1]*sh[2])
+
+```
+
+### Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by median (CORRECTED).
+
+```python
+def f(sd):
+    """Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by median (CORRECTED)."""
+    
+    # Add the volume to the top of the chroma array.
+    F = np.block([[sd['volume']], [sd['C']]])
+    
+    # Downsample features.
+    F_ds = np.stack([np.median(F_bit, axis=1) for F_bit in make_shingles(F, 1.5, 180, 1)]).T
+    
+    # Re-partition it into documents
+    F_D  = make_shingles(F_ds, 20, 180)
+    
     sh = F_D.shape
     return F_D.reshape(sh[0], sh[1]*sh[2])
 
@@ -209,3 +230,19 @@ The number of misses caused by each entry. In other words, how often did each en
 | mahler     | symphony3-3   | rattle      |       3 |
 | mahler     | symphony6-1   | zander      |       1 |
 | mahler     | symphony3-3   | zander      |       1 |
+
+### Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by median (CORRECTED). (100)
+
+fraction found: **0.76**	average first match: **0.725**	average average distance: **1.09**
+
+The number of misses caused by each entry. In other words, how often did each entry score best but was an incorrect match.
+
+| composer   | piece         | performer   |   count |
+|------------|---------------|-------------|---------|
+| mahler     | symphony3-3   | zander      |      10 |
+| stravinsky | spring-finale | ozawa       |       5 |
+| stravinsky | spring-finale | stravinsky  |       3 |
+| mahler     | symphony3-3   | rattle      |       2 |
+| poulenc    | flutesonata-1 | unkown1     |       2 |
+| mahler     | symphony6-1   | zander      |       1 |
+| beethoven  | symphony7-1   | karajan     |       1 |
