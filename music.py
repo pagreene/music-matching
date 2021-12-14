@@ -115,7 +115,7 @@ def make_shingles(D, L, dur, hop=None):
     return np.stack([D[:, (i*H):(i*H + LL)] for i in range(0, int((N - LL)/H) + 1)])
 
 
-def run_experiment(n_samples, song_data, f):
+def run_experiment(n_samples, song_data, f, quiet=True):
     """Test retrievability."""
     def match(s_id_1, s_id_2):
         return s_id_1['composer'] == s_id_2['composer'] and s_id_1['piece'] == s_id_2['piece']
@@ -158,11 +158,12 @@ def run_experiment(n_samples, song_data, f):
         
         scores.sort()
         
-        print()
-        print(tabulate.tabulate(
-            [(score, s['composer'], s['piece'], s['performer']) for score, s in scores],
-            headers=['score', 'composer', 'piece', 'performer']
-        ))
+        if not quiet:
+            print()
+            print(tabulate.tabulate(
+                [(score, s['composer'], s['piece'], s['performer']) for score, s in scores],
+                headers=['score', 'composer', 'piece', 'performer']
+            ))
     
         score_orders.append(scores)
         all_matches = [match(other_id, song_id) for _, other_id in scores]
