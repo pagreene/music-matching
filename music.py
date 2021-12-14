@@ -100,11 +100,19 @@ def parse_song_file_name(file_name):
     return {'composer': composer, 'piece': piece, 'performer': performer}
 
 
-def make_shingles(D, L, dur):
-    """Make shingles of the array D."""
+def make_shingles(D, L, dur, hop=1):
+    """Make shingles of the array D.
+
+    Note: the units of `L` are "time", which is influence by `dur`. In contrast, 
+    `hop` is in indices, which is independent of `dur`. The equivalence is
+        
+        [L] = dur*[hop],
+    
+    where [entity] indicates the units of entity.
+    """
     N = D.shape[1]
     LL = int(L*N/dur)
-    return np.stack([D[:, i:(i + LL)] for i in range(N - LL + 1)])
+    return np.stack([D[:, (i*hop):(i*hop + LL)] for i in range(0, int((N - LL)/hop) + 1)])
 
 
 def run_experiment(n_samples, song_data, f):
