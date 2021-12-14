@@ -4,8 +4,10 @@ import inspect
 import tabulate
 import random
 import numpy as np
-from matplotlib import pyplot as plt
 import librosa, librosa.display
+
+from matplotlib import pyplot as plt
+from collections import Counter
 
 
 def parse_song_data():
@@ -234,7 +236,7 @@ def print_report():
         tablefmt="github"
     ))
 
-    doc_lines.append("## Run Details")
+    doc_lines.append("## Method Details")
 
     methods_done = set()
     for run_info in results:
@@ -243,6 +245,24 @@ def print_report():
         doc_lines.append(f"### {run_info['method']}")
         doc_lines.append(f"```python\n{run_info['method_func']}\n```")
         methods_done.add(run_info['method'])
+
+    doc_lines.append("## Run Details")
+    
+    for run_info in results:
+        doc_lines.append(f"### {run_info['method']} ({run_info['sample_size']})")
+        doc_lines.append('\t'.join(f"{key.replace('_', ' ')}: **{value}**"
+                                   for key, value in run_info['summary'].items()))
+        doc_lines.append("The number of misses caused by each entry. In other words, "
+                         "how often did each entry score best but was an incorrect match.")
+        
+        gangers = [tuple(res['scores'][0][1].values()) for res in run_info['results'] if not res['top_found']]
+        c = Counter(gangers)
+
+        doc_lines.append(tabulate.tabulate(
+            [k + (v,) for k, v in c.most_common()],
+            ['composer', 'piece', 'performer', 'count'],
+            tablefmt='github'
+        ))
 
     with open("RESULTS.md", "w") as f:
         f.write('\n\n'.join(doc_lines))    
