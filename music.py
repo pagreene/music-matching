@@ -10,7 +10,7 @@ import librosa, librosa.display
 
 def parse_song_data():
     """Calculate and plot L2 normed CENS chromagram, alongside the Volume of the signal."""
-    song_files = [fname for fname in os.listdir(".") if fname.endswith('.wav')]
+    song_files = [fname for fname in os.listdir("./wavs") if fname.endswith('.wav')]
     fig, axes = plt.subplots(len(song_files), 2, sharex=True, figsize=(16, len(song_files)*1.1))
     song_data = []
     L = 20  # seconds
@@ -184,11 +184,12 @@ def run_experiment(n_samples, song_data, f):
     ))
 
     # Save the results.
-    with open("../RESULTS.json", "r") as res_fh:
+    with open("RESULTS.json", "r") as res_fh:
         res_j = json.load(res_fh)
     res_j.append({
         "method": f.__doc__,
         "method_func": inspect.getsource(f),
+        "sample_size": n_samples,
         "results": [
             {'scores': scr, 'top_found': tf, 'fraction_in_top': fit, 'ave_dist': ad}
             for scr, tf, fit, ad in zip(score_orders, top_found, num_in_top, ave_dist)
@@ -198,8 +199,8 @@ def run_experiment(n_samples, song_data, f):
             results
         ))
     })
-    with open("../RESULTS.json", "w") as res_fh:
-        json.dump(res_j, res_fh)
+    with open("RESULTS.json", "w") as res_fh:
+        json.dump(res_j, res_fh, indent=2)
         
     return {
         'top_found': top_found,
@@ -212,7 +213,7 @@ def run_experiment(n_samples, song_data, f):
 
 def print_report():
     doc_lines = []
-    with open("../RESULTS.json", "r") as f:
+    with open("RESULTS.json", "r") as f:
         results = json.load(f)
         
     doc_lines.append("# Results")
@@ -220,19 +221,23 @@ def print_report():
 
     doc_lines.append(tabulate.tabulate(
         [
-            (r['method'],) + tuple(r['summary'].values())
+            (r['method'], r['sample_size']) + tuple(r['summary'].values())
             for r in results
         ],
-        headers=["Method Description", "P_f", "<n>", "<<d>>"],
+        headers=["Method Description", "Sample Size", "`P_f`", "`[n]`", "`[[d]]`"],
         tablefmt="github"
     ))
 
     doc_lines.append("## Run Details")
 
+    methods_done = set()
     for run_info in results:
+        if run_info['method'] in methods_done:
+            continue
         doc_lines.append(f"### {run_info['method']}")
         doc_lines.append(f"```python\n{run_info['method_func']}\n```")
+        methods_done.add(run_info['method'])
 
-    with open("../RESULTS.md", "w") as f:
+    with open("RESULTS.md", "w") as f:
         f.write('\n\n'.join(doc_lines))    
 
