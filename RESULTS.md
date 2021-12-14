@@ -2,13 +2,15 @@
 
 ## Summary
 
-| Method Description                                                             |   Sample Size |   `P_f` |   `[n]` |   `[[d]]` |
-|--------------------------------------------------------------------------------|---------------|---------|---------|-----------|
-| Simply flatten the arrays, at full resolution.                                 |            10 |    0.5  |   0.5   |     4.6   |
-| Add volume as a channel, then simply flatten the arrays, at full resolution.   |            10 |    0.7  |   0.7   |     1.65  |
-| Downsample and then flatten the standard arrays (no volume).                   |            10 |    0.7  |   0.7   |     1.7   |
-| Downsample and then flatten the standard arrays (no volume).                   |           100 |    0.57 |   0.52  |     3.535 |
-| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz. |           100 |    0.66 |   0.625 |     2.51  |
+| Method Description                                                                       |   Sample Size |   `P_f` |   `[n]` |   `[[d]]` |
+|------------------------------------------------------------------------------------------|---------------|---------|---------|-----------|
+| Simply flatten the arrays, at full resolution.                                           |            10 |    0.5  |   0.5   |     4.6   |
+| Add volume as a channel, then simply flatten the arrays, at full resolution.             |            10 |    0.7  |   0.7   |     1.65  |
+| Downsample and then flatten the standard arrays (no volume).                             |            10 |    0.7  |   0.7   |     1.7   |
+| Downsample and then flatten the standard arrays (no volume).                             |           100 |    0.57 |   0.52  |     3.535 |
+| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz.           |           100 |    0.66 |   0.625 |     2.51  |
+| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by median. |           100 |    0.26 |   0.255 |     4.985 |
+| Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by mean.   |           100 |    0.27 |   0.26  |     5.165 |
 
 ## Run Details
 
@@ -64,6 +66,44 @@ def f(sd):
         
     # Downsample features.
     F_ds = F[:, ::43]
+    
+    # Re-partition it into documents
+    F_D  = make_shingles(F_ds, 20, 180)
+    sh = F_D.shape
+    return F_D.reshape(sh[0], sh[1]*sh[2])
+
+```
+
+### Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by median.
+
+```python
+def f(sd):
+    """Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by median."""
+    
+    # Add the volume to the top of the chroma array.
+    F = np.block([[sd['volume']], [sd['C']]])
+        
+    # Downsample features.
+    F_ds = np.stack([np.median(F_bit, axis=1) for F_bit in make_shingles(F, 1, 180, 1)])
+    
+    # Re-partition it into documents
+    F_D  = make_shingles(F_ds, 20, 180)
+    sh = F_D.shape
+    return F_D.reshape(sh[0], sh[1]*sh[2])
+
+```
+
+### Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by mean.
+
+```python
+def f(sd):
+    """Add volume as a channel, then simply flatten the arrays, downsampled to ~1 Hz by mean."""
+    
+    # Add the volume to the top of the chroma array.
+    F = np.block([[sd['volume']], [sd['C']]])
+        
+    # Downsample features.
+    F_ds = np.stack([np.mean(F_bit, axis=1) for F_bit in make_shingles(F, 1, 180, 1)])
     
     # Re-partition it into documents
     F_D  = make_shingles(F_ds, 20, 180)
