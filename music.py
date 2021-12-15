@@ -1,6 +1,8 @@
 import os
 import json
 import inspect
+from datetime import datetime
+
 import tabulate
 import random
 import numpy as np
@@ -170,6 +172,7 @@ def run_experiment(n_samples, song_data, f, quiet=True):
     ave_dist = []
     score_orders = []
     queries = []
+    times = []
 
     # Run the experiment n_samples times.
     for i in range(n_samples):
@@ -185,7 +188,10 @@ def run_experiment(n_samples, song_data, f, quiet=True):
 
         # Calculate the score for each other song.
         print(f"\n{i+1}/{n_samples}", song_id, shingle_idx)
+        start = datetime.now()
         scores = compute_scores(test_idx, shingle_idx, data)
+        time = (datetime.now() - start).total_seconds()
+        times.append(time)
         score_orders.append(scores)
 
         # Optionally print out a table of the scores.
@@ -193,16 +199,13 @@ def run_experiment(n_samples, song_data, f, quiet=True):
             print()
             print(
                 tabulate.tabulate(
-                    [
-                        (score, s["composer"], s["piece"], s["performer"])
-                        for score, s in scores
-                    ],
-                    headers=["score", "composer", "piece", "performer"],
+                    scores,
+                    headers=["score", "composer", "piece", "performer", "shingle idx"],
                 )
             )
 
         # Check if the top is a match
-        all_matches = [match(other_id, song_id) for _, other_id in scores]
+        all_matches = [match(row[1:-1], song_id) for row in scores]
         tf = all_matches[0]
         top_found.append(tf)
 
@@ -219,9 +222,14 @@ def run_experiment(n_samples, song_data, f, quiet=True):
         print(tf, nit, ave)
 
     # Print the results from this experiment.
-    results = [np.mean(top_found), np.mean(num_in_top), np.mean(ave_dist)]
+    results = [
+        np.mean(top_found),
+        np.mean(num_in_top),
+        np.mean(ave_dist),
+        np.mean(times),
+    ]
     print()
-    print(tabulate.tabulate([results], headers=["P_f", "<n>", "<<d>>"]))
+    print(tabulate.tabulate([results], headers=["P_f", "<n>", "<<d>>", "<t>"]))
 
     # Save the results.
     with open("RESULTS.json", "r") as res_fh:
@@ -232,9 +240,15 @@ def run_experiment(n_samples, song_data, f, quiet=True):
             "method_func": inspect.getsource(f),
             "sample_size": n_samples,
             "results": [
-                {"scores": scr, "top_found": tf, "fraction_in_top": fit, "ave_dist": ad}
-                for scr, tf, fit, ad in zip(
-                    score_orders, top_found, num_in_top, ave_dist
+                {
+                    "scores": scr,
+                    "top_found": tf,
+                    "fraction_in_top": fit,
+                    "ave_dist": ad,
+                    "time": t,
+                }
+                for scr, tf, fit, ad, t in zip(
+                    score_orders, top_found, num_in_top, ave_dist, times
                 )
             ],
             "summary": dict(
