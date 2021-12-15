@@ -291,7 +291,8 @@ def print_report():
         "the fraction of possible matches at the top of the list "
         "(the larger the better), and last but not least, `[[d]]` is an "
         "average over the average distances of matching results from "
-        "the top of the list."
+        "the top of the list, and `[t]` is the average time taken to "
+        "calculate the score ranking."
     )
     doc_lines.append(
         tabulate.tabulate(
@@ -299,7 +300,7 @@ def print_report():
                 (r["method"], r["sample_size"]) + tuple(r["summary"].values())
                 for r in results
             ],
-            headers=["Method Description", "Sample Size", "`P_f`", "`[n]`", "`[[d]]`"],
+            headers=["Method Description", "Sample Size", "`P_f`", "`[n]`", "`[[d]]`", "`[t]`"],
             tablefmt="github",
         )
     )
@@ -330,7 +331,7 @@ def print_report():
         )
 
         gangers = [
-            tuple(res["scores"][0][1].values())
+            res["scores"][0][1:-1]
             for res in run_info["results"]
             if not res["top_found"]
         ]
