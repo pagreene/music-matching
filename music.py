@@ -133,11 +133,18 @@ def compute_scores(test_idx, shingle_idx, data):
             continue
         score_arr = np.linalg.norm(sd["D"] - x, axis=1)
         min_idx = np.where(score_arr == score_arr.min())[0][0]
-        scores.append(
-            (score_arr[min_idx], *parse_song_file_name(sd["song_file"]), min_idx)
-        )
+        scores.append((score_arr[min_idx], sd["song_id"], j, min_idx))
     scores.sort()
     return scores
+
+
+def apply_embedding(song_data, f):
+    """Apply the embedding function to the raw data."""
+    data = []
+    for sd in song_data:
+        new_D = f(sd)
+        data.append({"song_id": parse_song_file_name(sd["song_file"]), "D": new_D})
+    return data
 
 
 def run_experiment(n_samples, song_data, f, quiet=True):
@@ -159,11 +166,10 @@ def run_experiment(n_samples, song_data, f, quiet=True):
     def match(s_id_1, s_id_2):
         return s_id_1[:1] == s_id_2[:1]
 
+    umap, fig_name = plot_umap(song_data, f)
+
     # Compute the encodings for each shingle
-    data = []
-    for sd in song_data:
-        new_D = f(sd)
-        data.append({"song_file": sd["song_file"], "D": new_D})
+    data = apply_embedding(song_data, f)
     N_s = len(data)
 
     # Set up the lists of values to track
@@ -199,13 +205,16 @@ def run_experiment(n_samples, song_data, f, quiet=True):
             print()
             print(
                 tabulate.tabulate(
-                    scores,
+                    [
+                        (score,) + song_id + (shingle_idx,)
+                        for score, song_id, _, shingle_idx in scores
+                    ],
                     headers=["score", "composer", "piece", "performer", "shingle idx"],
                 )
             )
 
         # Check if the top is a match
-        all_matches = [match(row[1:-1], song_id) for row in scores]
+        all_matches = [match(other_id, song_id) for _, other_id, _, _ in scores]
         tf = all_matches[0]
         top_found.append(tf)
 
@@ -239,6 +248,7 @@ def run_experiment(n_samples, song_data, f, quiet=True):
             "method": f.__doc__,
             "method_func": inspect.getsource(f),
             "sample_size": n_samples,
+            "fig_name": fig_name,
             "results": [
                 {
                     "scores": scr,
@@ -300,7 +310,14 @@ def print_report():
                 (r["method"], r["sample_size"]) + tuple(r["summary"].values())
                 for r in results
             ],
-            headers=["Method Description", "Sample Size", "`P_f`", "`[n]`", "`[[d]]`", "`[t]`"],
+            headers=[
+                "Method Description",
+                "Sample Size",
+                "`P_f`",
+                "`[n]`",
+                "`[[d]]`",
+                "`[t]`",
+            ],
             tablefmt="github",
         )
     )
@@ -330,8 +347,9 @@ def print_report():
             "how often did each entry score best but was an incorrect match."
         )
 
+        # Find the pieces of music that are most often the targets of confusion.
         gangers = [
-            res["scores"][0][1:-1]
+            res["scores"][0][1]
             for res in run_info["results"]
             if not res["top_found"]
         ]
@@ -384,5 +402,32 @@ def make_shingle_set(song_data, f):
     return shingles, composers, pieces, performers, indexes
 
 
-def plot_umap(umap, shingles, labels):
-    """Plot the umap projection of the given shingles hued by the given labels."""
+def plot_umap(song_data, f):
+    """Plot the umap projection for the given embedding function `f`."""
+    shingles, composers, pieces, performers, indexes = make_shingle_set(song_data, f)
+    umap = UMAP(n_neighbors=10).fit(shingles)
+
+    # Plot the global UMAP.
+    fig, axes = plt.subplots(len(set(composers)) + 1, 1)
+    x, y = umap.transform(shingles).T
+    scatterplot(x=x, y=y, hue=composers, ax=axes[0])
+    axes[0].set_title("Global UMAP")
+
+    # Print a separate map for each of the composers.
+    for i, composer in enumerate(set(composers)):
+        some_shingles = [s for s, c in zip(shingles, composers) if c == composer]
+        some_labels = [
+            (pc, pr)
+            for c, pc, pr in zip(composers, pieces, performers)
+            if c == composer
+        ]
+        x, y = umap.transform(some_shingles).T
+        scatterplot(x=x, y=y, hue=some_labels, ax=axes[i + 1])
+        axes[i + 1].set_xlim(axes[0].get_xlim())
+        axes[i + 1].set_ylim(axes[0].get_ylim())
+        axes[i + 1].set_title(f"UMAP for {composer}")
+
+    fig.suptitle(f"UMAPs for {f.__name__}")
+    fig_name = f"{f.__name__}_umaps.jpg"
+    fig.savefig(fig_name)
+    return umap, fig_name
