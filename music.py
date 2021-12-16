@@ -1,3 +1,5 @@
+__all__ = ['parse_song_data', 'run_experiment', 'make_shingles', 'make_shingle_set', 'print_report']
+
 import os
 import json
 import inspect

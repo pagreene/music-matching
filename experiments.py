@@ -1,17 +1,11 @@
-<<<<<<< HEAD
-import matplotlib.pyplot as plt
-=======
 import os
->>>>>>> 26da787 (Reorganize repo a bit, avoid filesize limit.)
+import numpy as np
 from sklearn.decomposition import PCA
 
 from music import *
 
 
 # Load and get chromas from the song data.
-<<<<<<< HEAD
-song_data = parse_song_data()
-=======
 try:
     import pickle
     song_data = []
@@ -21,7 +15,6 @@ try:
 except:
     print("Did not find pickle with song data. Loading it manually from ./wavs folder.")
     song_data = parse_song_data()
->>>>>>> 26da787 (Reorganize repo a bit, avoid filesize limit.)
 
 
 # Define the functions that were attempted.
