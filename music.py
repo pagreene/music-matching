@@ -25,11 +25,12 @@ def parse_song_data():
     L = 20  # seconds
     dur = 180  # seconds
     for i, song_file in enumerate(song_files):
-        print(song_file)
-        print("=" * len(song_file))
+        song_file_path = os.path.join("./wavs", song_file)
+        print(song_file_path)
+        print("=" * len(song_file_path))
 
         print("Loading...")
-        x, sr = librosa.load(song_file, duration=dur)
+        x, sr = librosa.load(song_file_path, duration=dur)
         Y = np.abs(x) ** 2
 
         print("Generating chroma...")
@@ -56,9 +57,6 @@ def parse_song_data():
         else:
             ax2.set_xlabel("Time")
 
-        print("Generating shingles...")
-        S_D = make_shingles(C, L, dur)
-
         song_data.append(
             {
                 "song_file": song_file,
@@ -66,7 +64,6 @@ def parse_song_data():
                 "C": C,
                 "rms": rms[0],
                 "volume": volume,
-                "S_D": S_D,
             }
         )
         print()
@@ -132,7 +129,7 @@ def compute_scores(test_idx, shingle_idx, data):
         if j == test_idx:
             continue
         score_arr = np.linalg.norm(sd["D"] - x, axis=1)
-        min_idx = np.where(score_arr == score_arr.min())[0][0]
+        min_idx = int(np.where(score_arr == score_arr.min())[0][0])
         scores.append((score_arr[min_idx], sd["song_id"], j, min_idx))
     scores.sort()
     return scores
@@ -166,9 +163,11 @@ def run_experiment(n_samples, song_data, f, quiet=True):
     def match(s_id_1, s_id_2):
         return s_id_1[:1] == s_id_2[:1]
 
+    print("Plotting umap....")
     umap, fig_name = plot_umap(song_data, f)
 
     # Compute the encodings for each shingle
+    print("Applying embedding...")
     data = apply_embedding(song_data, f)
     N_s = len(data)
 
@@ -181,6 +180,7 @@ def run_experiment(n_samples, song_data, f, quiet=True):
     times = []
 
     # Run the experiment n_samples times.
+    print("Running experiments...")
     for i in range(n_samples):
 
         # Choose a random song
@@ -189,8 +189,8 @@ def run_experiment(n_samples, song_data, f, quiet=True):
 
         # Choose a random shingle.
         shingle_idx = random.randrange(len(search["D"]))
-        song_id = parse_song_file_name(search["song_file"])
-        queries.append([*song_id, shingle_idx])
+        song_id = data[test_idx]["song_id"]
+        queries.append([song_id, test_idx, shingle_idx])
 
         # Calculate the score for each other song.
         print(f"\n{i+1}/{n_samples}", song_id, shingle_idx)
@@ -251,14 +251,15 @@ def run_experiment(n_samples, song_data, f, quiet=True):
             "fig_name": fig_name,
             "results": [
                 {
+                    "query": q,
                     "scores": scr,
                     "top_found": tf,
                     "fraction_in_top": fit,
                     "ave_dist": ad,
                     "time": t,
                 }
-                for scr, tf, fit, ad, t in zip(
-                    score_orders, top_found, num_in_top, ave_dist, times
+                for q, scr, tf, fit, ad, t in zip(
+                    queries, score_orders, top_found, num_in_top, ave_dist, times
                 )
             ],
             "summary": dict(
@@ -267,6 +268,7 @@ def run_experiment(n_samples, song_data, f, quiet=True):
                         "fraction_found",
                         "average_first_match",
                         "average_average_distance",
+                        "average_time"
                     ],
                     results,
                 )
@@ -338,7 +340,7 @@ def print_report():
         doc_lines.append(f"### {run_info['method']} ({run_info['sample_size']})")
         doc_lines.append(
             "\t".join(
-                f"{key.replace('_', ' ')}: **{value}**"
+                f"{key.replace('_', ' ')}: **{value:0.3}**"
                 for key, value in run_info["summary"].items()
             )
         )
@@ -349,9 +351,7 @@ def print_report():
 
         # Find the pieces of music that are most often the targets of confusion.
         gangers = [
-            res["scores"][0][1]
-            for res in run_info["results"]
-            if not res["top_found"]
+            tuple(res["scores"][0][1]) for res in run_info["results"] if not res["top_found"]
         ]
         c = Counter(gangers)
 
@@ -396,9 +396,9 @@ def make_shingle_set(song_data, f):
         indexes.extend(range(len(new_data)))
 
         song_id = parse_song_file_name(sd["song_file"])
-        composers.extend([song_id["composer"]] * len(new_data))
-        pieces.extend([song_id["piece"]] * len(new_data))
-        performers.extend([song_id["performer"]] * len(new_data))
+        composers.extend([song_id[0]] * len(new_data))
+        pieces.extend([song_id[1]] * len(new_data))
+        performers.extend([song_id[2]] * len(new_data))
     return shingles, composers, pieces, performers, indexes
 
 
