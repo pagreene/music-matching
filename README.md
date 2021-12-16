@@ -18,10 +18,10 @@ from one performance and identify the others.
 ### The data
 
 There are many datasets available for this problem, but I ended up using a selection of music from my own collection. I
-have made a pickle of the derived `song_data` features that I extracted from the files, and which are used in all my
-code. This data includes the names of the original wav files, which can be easily parsed with given functions into 
-standardized composer, piece, and performer labels, the chroma "C", and the shingles "S_D", as well as the "rms" and
-the "volume".
+have made a pickle of the derived `song_data` features, broken into separate pickle files in the `data` folder, that 
+I extracted from the files, and which are used in all my code. See examples.py for an example loading this data.
+This data includes the names of the original wav files, which can be easily parsed with given functions into 
+standardized composer, piece, and performer labels, the chroma "C", as well as the "rms" and the "volume".
 
 ### My Approaches
 
